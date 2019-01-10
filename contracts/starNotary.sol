@@ -8,12 +8,14 @@ contract StarNotary is ERC721 {
         string name;
     }
 
-//  Add a name and a symbol for your starNotary tokens
-
-//
+    // Add a name and a symbol for your starNotary tokens
+    string public name = 'Udacity Star Notary'; 
+    string public symbol = 'USN'; 
 
     mapping(uint256 => Star) public tokenIdToStarInfo;
     mapping(uint256 => uint256) public starsForSale;
+    // tokenExchangeIntention[token2] = token1 means owner of token2 wants to exchange with token1
+    mapping(uint256 => uint256) public tokenExchangeIntention;
 
     function createStar(string _name, uint256 _tokenId) public {
         Star memory newStar = Star(_name);
@@ -23,9 +25,11 @@ contract StarNotary is ERC721 {
         _mint(msg.sender, _tokenId);
     }
 
-// Add a function lookUptokenIdToStarInfo, that looks up the stars using the Token ID, and then returns the name of the star.
+    // Add a function lookUptokenIdToStarInfo, that looks up the stars using the Token ID, and then returns the name of the star.
+    function lookUptokenIdToStarInfo(uint256 _tokenId) public view returns (string starName) {
+        starName = tokenIdToStarInfo[_tokenId].name; 
+    }
 
-//
 
     function putStarUpForSale(uint256 _tokenId, uint256 _price) public {
         require(ownerOf(_tokenId) == msg.sender);
@@ -49,15 +53,36 @@ contract StarNotary is ERC721 {
             msg.sender.transfer(msg.value - starCost);
         }
         starsForSale[_tokenId] = 0;
-      }
+    }
 
-// Add a function called exchangeStars, so 2 users can exchange their star tokens...
-//Do not worry about the price, just write code to exchange stars between users.
+    // Add a function called exchangeStars, so 2 users can exchange their star tokens...
+    // Do not worry about the price, just write code to exchange stars between users.
+    function exchangeStars(uint256 token1, uint256 token2) public {
 
-//
+        address user1 = ownerOf(token1);
+        require(user1 == msg.sender);
+        address user2 = ownerOf(token2);
 
-// Write a function to Transfer a Star. The function should transfer a star from the address of the caller.
-// The function should accept 2 arguments, the address to transfer the star to, and the token ID of the star.
-//
+        // Owner of token2 also has intention to exchange with token1
+        if(token1 == tokenExchangeIntention[token2]) {
+            _removeTokenFrom(user1, token1);
+            _removeTokenFrom(user2, token2);
+            _addTokenTo(user1, token2);
+            _addTokenTo(user2, token1);
+            tokenExchangeIntention[token2] = 0;
+        } 
+        // Owner of token2 doesn't have exchange intention yet. Record this exchange intention. The intention can be cancelled any time by calling exchangeStars(token1, 0)
+        else {
+            tokenExchangeIntention[token1] = token2; 
+        }
+    }
 
+
+    // Write a function to Transfer a Star. The function should transfer a star from the address of the caller.
+    // The function should accept 2 arguments, the address to transfer the star to, and the token ID of the star.
+    function transferStar(address receiver, uint256 tokenToTransfer) public {
+        require(ownerOf(tokenToTransfer) == msg.sender);
+        _removeTokenFrom(msg.sender, tokenToTransfer);
+        _addTokenTo(receiver, tokenToTransfer);
+    }
 }
